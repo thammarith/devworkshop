@@ -5,7 +5,7 @@ export interface Message {
     id: string;
     content: string;
     created_at: Timestamp;
-    user_name?: string; // Optional user name for display
+    user_name: string; // Optional user name for display
 }
 
 export interface Chat {

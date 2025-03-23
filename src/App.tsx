@@ -1,13 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
-import { Chat, Message } from '../schema/models';
+import { useState, useEffect } from 'react';
+import { Chat, Message } from '@/types/chat';
 import {
   createChat,
-  getChats,
   listenToChats,
   listenToMessages,
-  sendMessage
+  sendMessage,
+  deleteChat,
+  renameChat
 } from './lib/firebase';
-import ChatMessage from './components/ChatMessage';
+import Header from './components/Header';
+import ChatSidebar from './components/ChatSidebar';
+import MessageArea from './components/MessageArea';
+import UserNameForm from './components/UserNameForm';
+import { ThemeProvider } from '@/components/theme-provider';
 
 function App() {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -15,9 +20,6 @@ function App() {
   const [currentChat, setCurrentChat] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>('');
   const [isUserNameSet, setIsUserNameSet] = useState<boolean>(false);
-  const [newChatName, setNewChatName] = useState<string>('');
-  const [messageInput, setMessageInput] = useState<string>('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Initialize user name
   useEffect(() => {
@@ -29,12 +31,10 @@ function App() {
   }, []);
 
   // Save user name to local storage
-  const handleSetUserName = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (userName.trim()) {
-      localStorage.setItem('userName', userName);
-      setIsUserNameSet(true);
-    }
+  const handleSetUserName = (name: string) => {
+    localStorage.setItem('userName', name);
+    setUserName(name);
+    setIsUserNameSet(true);
   };
 
   // Load chats
@@ -64,155 +64,100 @@ function App() {
     return () => unsubscribe();
   }, [currentChat]);
 
-  // Auto-scroll to bottom of messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
   // Create a new chat
-  const handleCreateChat = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newChatName.trim() && isUserNameSet) {
-      const chatId = await createChat(newChatName, userName);
+  const handleCreateChat = async (chatName: string) => {
+    if (isUserNameSet) {
+      const chatId = await createChat(chatName, userName);
       setCurrentChat(chatId);
-      setNewChatName('');
+      return Promise.resolve();
     }
+    return Promise.reject("User name not set");
   };
 
   // Send a message
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (messageInput.trim() && currentChat && isUserNameSet) {
-      await sendMessage(currentChat, messageInput, userName);
-      setMessageInput('');
+  const handleSendMessage = async (text: string) => {
+    if (currentChat && isUserNameSet) {
+      await sendMessage(currentChat, text, userName);
+      return Promise.resolve();
+    }
+    return Promise.reject("Cannot send message");
+  };
+
+  // Delete a chat
+  const handleDeleteChat = async (chatId: string) => {
+    try {
+      await deleteChat(chatId);
+      if (currentChat === chatId) {
+        setCurrentChat(chats.length > 1 ? chats.find(chat => chat.id !== chatId)?.id || null : null);
+        setMessages([]);
+      }
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Error deleting chat:", error);
+      return Promise.reject("Error deleting chat");
+    }
+  };
+
+  // Rename a chat
+  const handleRenameChat = async (chatId: string, newName: string) => {
+    try {
+      await renameChat(chatId, newName);
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Error renaming chat:", error);
+      return Promise.reject("Error renaming chat");
     }
   };
 
   // User name setup screen
   if (!isUserNameSet) {
     return (
-      <div className="bg-gray-100 h-screen flex items-center justify-center">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-          <h1 className="text-2xl font-bold mb-4">Welcome to Chat App</h1>
-          <p className="mb-4">Please enter your name to continue:</p>
-          <form onSubmit={handleSetUserName}>
-            <input
-              type="text"
-              value={userName}
-              onChange={(e) => setUserName(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded mb-4"
-              placeholder="Your name"
-              required
-            />
-            <button
-              type="submit"
-              className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-            >
-              Continue
-            </button>
-          </form>
-        </div>
-      </div>
+      <ThemeProvider defaultTheme="system" storageKey="chat-theme">
+        <UserNameForm onSubmit={handleSetUserName} initialUserName={userName} />
+      </ThemeProvider>
     );
   }
 
   return (
-    <section className="bg-gray-100 h-screen flex flex-col">
-      <header className="bg-gray-800 text-white p-4">
-        <div className="container mx-auto flex justify-between items-center">
-          <h1 className="text-lg font-semibold">Chat App</h1>
-          <p>Logged in as: {userName}</p>
-        </div>
-      </header>
+    <ThemeProvider defaultTheme="system" storageKey="chat-theme">
+      <div className="flex h-screen flex-col bg-background">
+        <Header userName={userName} />
 
-      <main className="flex-grow grid grid-cols-1 md:grid-cols-4 gap-4 p-4 container mx-auto">
-        <aside className="md:block bg-gray-200 p-4 rounded-lg">
-          <h2 className="text-lg font-semibold mb-4">Chats</h2>
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sidebar */}
+          <div className="hidden md:block md:w-64 lg:w-80 h-full">
+            <ChatSidebar
+              chats={chats}
+              currentChat={currentChat}
+              onChatSelect={setCurrentChat}
+              onCreateChat={handleCreateChat}
+              onDeleteChat={handleDeleteChat}
+              onRenameChat={handleRenameChat}
+            />
+          </div>
 
-          <form onSubmit={handleCreateChat} className="mb-4">
-            <div className="flex">
-              <input
-                type="text"
-                value={newChatName}
-                onChange={(e) => setNewChatName(e.target.value)}
-                placeholder="New chat name"
-                className="flex-grow p-2 border border-gray-300 rounded-l-lg"
+          {/* Main area */}
+          <div className="flex-1 h-full">
+            {currentChat ? (
+              <MessageArea
+                messages={messages}
+                userName={userName}
+                onSendMessage={handleSendMessage}
               />
-              <button
-                type="submit"
-                className="bg-blue-500 text-white px-3 rounded-r-lg"
-              >
-                +
-              </button>
-            </div>
-          </form>
-
-          <ul>
-            {chats.map((chat) => (
-              <li
-                key={chat.id}
-                className={`p-2 rounded-lg mb-2 cursor-pointer hover:bg-gray-400 ${
-                  currentChat === chat.id ? 'bg-gray-400' : 'bg-gray-300'
-                }`}
-                onClick={() => setCurrentChat(chat.id)}
-              >
-                {chat.name}
-              </li>
-            ))}
-            {chats.length === 0 && (
-              <li className="text-gray-500 text-center p-2">
-                No chats yet. Create one!
-              </li>
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <div className="max-w-md text-center">
+                  <h3 className="text-xl font-semibold mb-2">No conversation selected</h3>
+                  <p className="text-muted-foreground">
+                    Choose a conversation from the sidebar or create a new one to start chatting.
+                  </p>
+                </div>
+              </div>
             )}
-          </ul>
-        </aside>
-
-        <section className="col-span-3 bg-white p-4 rounded-lg shadow-md flex flex-col">
-          {currentChat ? (
-            <>
-              <div className="flex-grow overflow-y-auto p-2 max-h-[calc(100vh-200px)]">
-                {messages.length > 0 ? (
-                  messages.map((message) => (
-                    <ChatMessage
-                      key={message.id}
-                      message={message}
-                      isCurrentUser={message.user_name === userName}
-                    />
-                  ))
-                ) : (
-                  <div className="text-center text-gray-500 mt-10">
-                    No messages yet. Start the conversation!
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              <div className="mt-4">
-                <form className="flex items-center" onSubmit={handleSendMessage}>
-                  <input
-                    type="text"
-                    value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
-                    placeholder="Type your message..."
-                    className="flex-grow p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <button
-                    type="submit"
-                    className="ml-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-                  >
-                    Send
-                  </button>
-                </form>
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <p className="text-gray-500">Select a chat or create a new one to start messaging.</p>
-            </div>
-          )}
-        </section>
-      </main>
-    </section>
+          </div>
+        </div>
+      </div>
+    </ThemeProvider>
   );
 }
 
