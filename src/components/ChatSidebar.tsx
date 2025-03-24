@@ -70,31 +70,31 @@ const ChatSidebar = ({
 
   return (
     <div className="flex h-full flex-col border-r bg-muted/40">
-      {/* <div className="p-4 font-semibold flex items-center justify-between">
-        <h2 className="text-lg">Conversations</h2>
-      </div> */}
+      <div className="p-4 font-semibold flex items-center justify-between">
+        <div className="text-sm">Conversations</div>
+      </div>
 
-      <form onSubmit={handleCreateChat} className="px-3 pb-2 pt-5">
-        <div className="flex w-full gap-2">
+      <form onSubmit={handleCreateChat} className="px-3 pb-2">
+        <div className="flex w-full gap-3">
           <Input
             value={newChatName}
             onChange={(e) => setNewChatName(e.target.value)}
             placeholder="New conversation"
-            className="h-9"
+            className="h-8.5"
           />
-          <Button type="submit" size="icon" className="h-9 w-9 shrink-0">
+          <Button type="submit" size="icon" className="h-8 w-8 shrink-0">
             <Plus className="h-4 w-4" />
             <span className="sr-only">New chat</span>
           </Button>
         </div>
       </form>
 
-      <ScrollArea className="flex-1 px-2">
+      <ScrollArea className="flex-1 px-2 mt-3">
         <div className="space-y-1 py-2">
           {chats.map((chat) => (
-            <div key={chat.id} className="flex items-center group">
+            <div key={chat.id} className={`flex items-center group hover:bg-muted rounded-sm ${currentChat === chat.id ? "bg-muted" : ""}`}>
               <Button
-                variant={currentChat === chat.id ? "secondary" : "ghost"}
+                variant={"ghost"}
                 className="flex-1 justify-start px-2 text-left"
                 onClick={() => onChatSelect(chat.id)}
               >
