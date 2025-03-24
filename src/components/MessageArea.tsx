@@ -81,8 +81,8 @@ const MessageArea = ({ messages, userName, onSendMessage }: MessageAreaProps) =>
           ) : (
             <div className="flex h-[50vh] items-center justify-center">
               <div className="text-center text-muted-foreground">
-                <p>No messages yet</p>
-                <p className="text-sm">Start a conversation!</p>
+                {/* <p>No messages yet</p>
+                <p className="text-sm">Start a conversation!</p> */}
               </div>
             </div>
           )}
