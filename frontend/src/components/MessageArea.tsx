@@ -7,6 +7,22 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
+// Add color mapping function
+const getAvatarColor = (char: string) => {
+  const colors = [
+    "bg-red-700/20", "bg-blue-700/30", "bg-green-700/30", "bg-yellow-700/30",
+    "bg-purple-700/30", "bg-pink-700/30", "bg-indigo-700/30", "bg-teal-700/30",
+    "bg-orange-700/30", "bg-cyan-700/30", "bg-lime-700/30", "bg-emerald-700/30",
+    "bg-violet-700/30", "bg-fuchsia-700/30", "bg-rose-700/30", "bg-amber-700/30"
+  ];
+
+  // Generate consistent color based on character code
+  const charCode = char.toLowerCase().charCodeAt(0);
+  const colorIndex = charCode % colors.length;
+
+  return colors[colorIndex];
+};
+
 interface MessageAreaProps {
   messages: Message[];
   userName: string;
@@ -35,7 +51,7 @@ const MessageArea = ({ messages, userName, onSendMessage }: MessageAreaProps) =>
         <div className="space-y-4">
           {messages.length > 0 ? (
             messages.map((message) => {
-              const isCurrentUser = message.user_name === userName;
+              const isCurrentUser = message.username === userName;
               return (
                 <div
                   key={message.id}
@@ -49,8 +65,8 @@ const MessageArea = ({ messages, userName, onSendMessage }: MessageAreaProps) =>
                     isCurrentUser && "flex-row-reverse"
                   )}>
                     <Avatar className="h-8 w-8 mt-0.5">
-                      <AvatarFallback>
-                        {message.user_name.charAt(0).toUpperCase()}
+                      <AvatarFallback className={getAvatarColor(message.username.charAt(0))}>
+                        {message.username.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div>
@@ -66,7 +82,7 @@ const MessageArea = ({ messages, userName, onSendMessage }: MessageAreaProps) =>
                         "text-xs text-muted-foreground mt-1",
                         isCurrentUser && "text-right"
                       )}>
-                        {message.user_name} · {new Date((message.created_at?.seconds ?? 0) * 1000).toLocaleTimeString([], {
+                        {message.username} · {new Date((message.created_at?.seconds ?? 0) * 1000).toLocaleTimeString([], {
                           day: '2-digit',
                           month: 'short',
                           hour: '2-digit',
