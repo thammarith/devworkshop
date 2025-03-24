@@ -22,7 +22,7 @@ export const createChat = async (
     name,
     created_at: serverTimestamp() as Timestamp,
     updated_at: serverTimestamp() as Timestamp,
-    participants: [userName],
+    participants: { [userName]: true },
   };
 
   const chatRef = await addDoc(collection(db, "chats"), chatData);

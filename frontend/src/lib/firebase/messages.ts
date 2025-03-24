@@ -22,7 +22,8 @@ export const sendMessage = async (
   const messageData: Omit<Message, "id"> = {
     content,
     created_at: serverTimestamp() as Timestamp,
-    user_name: userName,
+    username: userName,
+    role: "user",
   };
 
   await addDoc(messagesRef, messageData);
