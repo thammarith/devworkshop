@@ -8,11 +8,17 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 # Initialize Firestore client
 db = firestore.client()
 
+
+def truncate_text(text: str, max_length: int = 100) -> str:
+    """Truncate text to a maximum length."""
+    return text[:max_length] + "..." if len(text) > max_length else text
+
+
 def is_copilot_command(content: str) -> bool:
     """Check if a message is a copilot command."""
-    print(f"Message content: {content[:100]}...")
+    print(f"Message content: {truncate_text(content)}")
     result = "@copilot" in content
-    print(f"Is copilot command: {result}")
+    # print(f"Is copilot command: {result}")
     return result
 
 
@@ -20,7 +26,7 @@ def extract_query(content: str) -> str:
     """Extract the query part from a copilot command."""
 
     query = content.replace("@copilot", "").strip()
-    print(f"Extracted query: {query[:100]}...")
+    print(f"Extracted query: {truncate_text(query)}")
     return query
 
 
@@ -93,6 +99,23 @@ def format_message_history(messages: List[Dict[str, Any]]) -> List[Dict[str, Any
     return formatted_history
 
 
+def format_message_context(messages: List[Dict[str, Any]]) -> str:
+    """
+    Format the message context into a string.
+    <conversation>
+       <userA> {{message}} </userA>
+       <userB> {{message}} </userB>
+       <copilot> {{message}} </copilot>
+       <userC> {{message}} </userC>
+    </conversation>
+    """
+    context = "<conversation>\n"
+    for msg in messages:
+        context += f"<{msg.get('username', 'User')}>{msg.get('content', '')}</{msg.get('username', 'User')}>\n"
+    context += "</conversation>"
+    return context
+
+
 def create_response_message(response_ref, chat_id: str) -> firestore.DocumentReference:
     """
     Create a new response message document in Firestore.
@@ -128,7 +151,7 @@ def create_update_callback(response_ref: firestore.DocumentReference) -> Callabl
     print(f"Creating update callback for response {response_ref.id}")
 
     def update_response(current_content: str):
-        print(f"Updating response {response_ref.id} with content length: {len(current_content)}")
+        # print(f"Updating response {response_ref.id} with content length: {len(current_content)}")
         response_ref.update({
             "content": current_content,
             "updated_at": firestore.SERVER_TIMESTAMP

@@ -17,6 +17,7 @@ print("Firebase app initialized")
 
 from src.genai import generate_response
 from src.service import (
+    format_message_context,
     is_copilot_command,
     extract_query,
     get_previous_messages,
@@ -37,11 +38,12 @@ def copilot_messages(event: Event[DocumentSnapshot]) -> None:
     print(f"Function triggered for document: {event.data.reference.path}")
 
     new_data: dict = event.data.to_dict()
+    username: str  = new_data.get("username", "")
     content : str  = new_data.get("content", "")
 
     # Check if the message starts with "@copilot"
     if not is_copilot_command(content):
-        print("Not a copilot command, ignoring message")
+        # print("Not a copilot command, ignoring message")
         return
 
     # Extract the query
@@ -57,7 +59,6 @@ def copilot_messages(event: Event[DocumentSnapshot]) -> None:
     try:
         # Get previous messages and format them
         previous_messages = get_previous_messages(chat_id, message_id)
-        message_history   = format_message_history(previous_messages)
 
         # Create a new response message document
         create_response_message(response_ref, chat_id)
@@ -66,10 +67,24 @@ def copilot_messages(event: Event[DocumentSnapshot]) -> None:
         update_callback = create_update_callback(response_ref)
 
         # Generate response using Gemini with streaming callback and conversation history
+        # ===============================================================================
+
+        # v1 - use built-in conversation history
+        # message_history   = format_message_history(previous_messages)
+        # final_response = generate_response(
+        #     prompt=query,
+        #     stream_callback=update_callback,
+        #     history=message_history
+        # )
+
+        # v2 - format conversation history in a single prompt
+        message_context   = format_message_context(previous_messages)
+        prompt = f"{message_context}\n\n I'm {username}. {query}"
+        print(f"Prompt: {prompt}")
+
         final_response = generate_response(
-            prompt=query,
+            prompt=prompt,
             stream_callback=update_callback,
-            history=message_history
         )
 
     except Exception as e:
