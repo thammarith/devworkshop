@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 from firebase_admin import initialize_app, firestore
 from firebase_functions.firestore_fn import (
@@ -21,7 +22,6 @@ from src.service import (
     is_copilot_command,
     extract_query,
     get_previous_messages,
-    format_message_history,
     create_response_message,
     create_update_callback,
     finalize_response
@@ -57,35 +57,17 @@ def copilot_messages(event: Event[DocumentSnapshot]) -> None:
     final_response: str = ""
     response_ref = db.collection("chats").document(chat_id).collection("messages").document()
     try:
-        # Get previous messages and format them
-        previous_messages = get_previous_messages(chat_id, message_id)
-
-        # Create a new response message document
         create_response_message(response_ref, chat_id)
 
-        # Get callback for streaming updates
-        update_callback = create_update_callback(response_ref)
-
-        # Generate response using Gemini with streaming callback and conversation history
-        # ===============================================================================
-
-        # v1 - use built-in conversation history
-        # message_history   = format_message_history(previous_messages)
-        # final_response = generate_response(
-        #     prompt=query,
-        #     stream_callback=update_callback,
-        #     history=message_history
-        # )
-
-        # v2 - format conversation history in a single prompt
+        # Get previous messages and format them
+        previous_messages = get_previous_messages(chat_id, message_id)
         message_context   = format_message_context(previous_messages)
+
         prompt = f"{message_context}\n\n I'm {username}. {query}"
         print(f"Prompt: {prompt}")
 
-        final_response = generate_response(
-            prompt=prompt,
-            stream_callback=update_callback,
-        )
+        final_response = f"Memory: <context>{prompt}</context>"
+        time.sleep(5)
 
     except Exception as e:
         final_response = f"Error generating response: {e}"

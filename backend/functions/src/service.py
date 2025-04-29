@@ -62,43 +62,6 @@ def get_previous_messages(chat_id: str, current_message_id: str, limit: int = 10
         return []
 
 
-def format_message_history(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """
-    Format message history into the structure expected by Gemini.
-
-    Args:
-        messages: List of raw message dictionaries from Firestore
-
-    Returns:
-        List of formatted message dictionaries
-    """
-    if not messages: return []
-
-    print(f"Formatting {len(messages)} messages for Gemini")
-    formatted_history = []
-
-    # fix: history must start with a user turn. (gemini requirements)
-    if messages[0].get("role") != "user":
-        formatted_history.append({
-            "role"   : "user",
-            "content": "[sender:User] "
-        })
-
-    for msg in messages:
-        role     = msg.get("role", "user")
-        content  = msg.get("content", "")
-        username = msg.get("username", "User")
-
-        formatted_content = f"[sender:{username}] {content}"
-
-        formatted_history.append({
-            "role"   : role,
-            "content": formatted_content
-        })
-    print(f"Formatted {len(formatted_history)} messages")
-    return formatted_history
-
-
 def format_message_context(messages: List[Dict[str, Any]]) -> str:
     """
     Format the message context into a string.
