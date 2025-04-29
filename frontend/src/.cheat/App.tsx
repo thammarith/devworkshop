@@ -10,14 +10,25 @@ function App() {
 
   // Initialize user name
   useEffect(() => {
+    const savedUserName = localStorage.getItem('userName');
+    if (savedUserName) {
+      setUserName(savedUserName);
+      setIsUserNameSet(true);
+    }
   }, []);
 
   // Save user name to local storage
   const handleSetUserName = (name: string) => {
+    localStorage.setItem('userName', name);
+    setUserName(name);
+    setIsUserNameSet(true);
   };
 
   // Handle user logout
   const handleLogout = () => {
+    localStorage.removeItem('userName');
+    setUserName('');
+    setIsUserNameSet(false);
   };
 
   return (

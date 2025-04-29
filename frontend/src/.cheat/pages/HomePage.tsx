@@ -6,7 +6,7 @@ interface HomePageProps {
 }
 
 const HomePage = ({ onSubmit, initialUserName }: HomePageProps) => {
-    return <></>;
+    return <UserNameForm onSubmit={onSubmit} initialUserName={initialUserName} />;
 };
 
 export default HomePage;
